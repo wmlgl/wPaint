@@ -126,6 +126,17 @@
     setStrokeStyle: function (color) {
       this.options.strokeStyle = color;
       this.menus.all.main._setColorPickerValue('strokeStyle', color);
+
+      // set resize border color
+	  this.$canvasTempPanel.removeClass('wPaint-move-darker');
+      if(color == "transparent") {
+    	  this.$canvasTempPanel.addClass('wPaint-move-darker');
+      } else {
+          var rgb = color.rgbValue();
+          if(rgb.red*0.3+rgb.green*0.59+rgb.blue*0.11 > 200) {
+        	  this.$canvasTempPanel.addClass('wPaint-move-darker');
+          }
+      }
     },
 
     setLineWidth: function (width) {
@@ -221,16 +232,18 @@
     _drawRectangleDown: function (e) { this._drawShapeDown(e); },
 
     _drawRectangleMove: function (e) {
-      this._drawShapeMove(e);
-
-      this.ctxTemp.rect(e.x, e.y, e.w, e.h);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+      var painter = function(x, y, w, h) {
+          this.ctxTemp.rect(x, y, w, h);
+          this.ctxTemp.stroke();
+          this.ctxTemp.fill();
+      }.bind(this)
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawRectangleUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -239,16 +252,18 @@
     _drawEllipseDown: function (e) { this._drawShapeDown(e); },
 
     _drawEllipseMove: function (e) {
-      this._drawShapeMove(e);
-
-      this.ctxTemp.ellipse(e.x, e.y, e.w, e.h);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+        var painter = function(x, y, w, h) {
+            this.ctxTemp.ellipse(x, y, w, h);
+            this.ctxTemp.stroke();
+            this.ctxTemp.fill();
+        }.bind(this)
+        
+      this._drawShapeMove(e, null, painter);
+        painter(e.x, e.y, e.w, e.h);
     },
 
     _drawEllipseUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -257,25 +272,27 @@
     _drawLineDown: function (e) { this._drawShapeDown(e); },
 
     _drawLineMove: function (e) {
-      this._drawShapeMove(e, 1);
-
-      var xo = this.canvasTempLeftOriginal;
-      var yo = this.canvasTempTopOriginal;
-      
-      if (e.pageX < xo) { e.x = e.x + e.w; e.w = e.w * - 1; }
-      if (e.pageY < yo) { e.y = e.y + e.h; e.h = e.h * - 1; }
-      
-      this.ctxTemp.lineJoin = 'round';
-      this.ctxTemp.beginPath();
-      this.ctxTemp.moveTo(e.x, e.y);
-      this.ctxTemp.lineTo(e.x + e.w, e.y + e.h);
-      this.ctxTemp.closePath();
-      this.ctxTemp.stroke();
+        var painter = function(x, y, w, h) {
+  	      var xo = this.canvasTempLeftOriginal;
+  	      var yo = this.canvasTempTopOriginal;
+  	      
+  	      if (e.pageX < xo) { x = x + w; w = w * - 1; }
+  	      if (e.pageY < yo) { y = y + h; h = h * - 1; }
+  	      
+  	      this.ctxTemp.lineJoin = 'round';
+  	      this.ctxTemp.beginPath();
+  	      this.ctxTemp.moveTo(x, y);
+  	      this.ctxTemp.lineTo(x + w, y + h);
+  	      this.ctxTemp.closePath();
+  	      this.ctxTemp.stroke();
+        }.bind(this)
+        
+      this._drawShapeMove(e, 1, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawLineUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -331,8 +348,11 @@
      * bucket
      ****************************************/
     _drawBucketDown: function (e) {
-      this.ctx.fillArea(e.pageX, e.pageY, this.options.fillStyle);
-      this._addUndo();
+       if(this.options.fillStyle == "transparent") {
+          return;
+       }
+       this.ctx.fillArea(e.pageX, e.pageY, this.options.fillStyle);
+       this._addUndo();
     }
   });
 })(jQuery);

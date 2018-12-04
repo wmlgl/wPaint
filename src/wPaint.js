@@ -31,7 +31,7 @@
       // also returns the jQuery object so we can chain events right off the function call.
       // for the tempCanvas we will be setting some extra attributes but don't won't matter
       // as they will be reset on mousedown anyway.
-      function createCanvas(name) {
+      function createCanvas(name, $parent) {
         var newName = (name ? name.capitalize() : ''),
             canvasName = 'canvas' + newName,
             ctxName = 'ctx' + newName;
@@ -46,7 +46,7 @@
         .attr('height', _this.height + 'px')
         .css({position: 'absolute', left: 0, top: 0});
 
-        _this.$el.append(_this['$' + canvasName]);
+        ($parent||_this.$el).append(_this['$' + canvasName]);
 
         return _this['$' + canvasName];
       }
@@ -59,6 +59,10 @@
         e.canvasEvent = 'down';
         _this._closeSelectBoxes();
         _this._callShapeFunc.apply(_this, [e]);
+      }
+      
+      function documentMousedown(e) {
+         _this._mergeCanvasTemp();
       }
 
       function documentMousemove(e) {
@@ -86,12 +90,21 @@
       .on('mousedown', canvasMousedown)
       .bindMobileEvents();
       
+      // create canvasTemp parent, handle drag and resize
+      this.$canvasTempPanel = $('<div class="wPaint-move-panel"><div class="wPaint-move-border"></div></div>')
+        .css({position: 'absolute', left: 0, top: 0})
+        .on('mousedown resize', this._stopPropagation)
+        .hide()
+        .appendTo(this.$el);
+      
       // create temp canvas for drawing shapes temporarily
       // before transfering to main canvas
-      createCanvas('temp').hide();
+      createCanvas('temp', this.$canvasTempPanel)
+      .css('position', 'static');
       
       // event handlers for drawing
       $(document)
+      .on('mousedown', documentMousedown)
       .on('mousemove', documentMousemove)
       .on('mousedown', $.proxy(this._closeSelectBoxes, this))
       .on('mouseup', documentMouseup);
@@ -103,15 +116,50 @@
 
     _init: function () {
       var index = null,
-          setFuncName = null;
+          setFuncName = null,
+          _this = this;
 
       this.init = true;
 
+      function canvasTempPanelResize(e, ui) {
+    	  if(_this._canvasTempReisze) {
+    	      var x = _this.options.lineWidth / 2 * _this._canvasTempFactor;
+    	      var y = _this.options.lineWidth / 2 * _this._canvasTempFactor;
+    	      var w = ui.size.width - _this.options.lineWidth * _this._canvasTempFactor;
+    	      var h = ui.size.height - _this.options.lineWidth * _this._canvasTempFactor;
+    	      _this.canvasTempLeftNew = ui.position.left;
+    	      _this.canvasTempTopNew = ui.position.top;
+    	      
+    		  _this.$canvasTemp.attr({width: ui.size.width, height: ui.size.height});
+    		  _this.ctxTemp.fillStyle = _this.options.fillStyle;
+    		  _this.ctxTemp.strokeStyle = _this.options.strokeStyle;
+    		  _this.ctxTemp.lineWidth = _this.options.lineWidth * _this._canvasTempFactor;
+        	  _this._canvasTempReisze(x, y, w, h);
+    	  }
+      }
+      
+      function canvasTempPanelDrag(e, ui) {
+    	  ui.size = {width: _this.$canvasTempPanel.width(), height: _this.$canvasTempPanel.height()};
+    	  canvasTempPanelResize(e, ui);
+      }
+      
       // run any set functions if they exist
       for (index in this.options) {
         setFuncName = 'set' + index.capitalize();
         if (this[setFuncName]) { this[setFuncName](this.options[index]); }
       }
+      
+      // draggable and resize
+      this.$canvasTempPanel
+      .resizable({
+    	  handles: 'all'
+      })
+      .draggable({
+    	  handle: 'canvas',
+    	  scroll: false
+      })
+      .on('resize resizestop', canvasTempPanelResize)
+      .on('dragstop', canvasTempPanelDrag);
 
       // fix menus
       this._fixMenus();
@@ -240,7 +288,7 @@
       });
     },
 
-    getImage: function (withBg) {
+    getImage: function (withBg, type) {
       var canvasSave = document.createElement('canvas'),
           ctxSave = canvasSave.getContext('2d');
 
@@ -254,7 +302,7 @@
       if (withBg) { ctxSave.drawImage(this.canvasBg, 0, 0); }
       ctxSave.drawImage(this.canvas, 0, 0);
 
-      return canvasSave.toDataURL();
+      return canvasSave.toDataURL(type);
     },
 
     getBg: function () {
@@ -417,17 +465,21 @@
      * shape helpers
      ************************************/
     _drawShapeDown: function (e) {
+      this._mergeCanvasTemp();
+      
+      this.$canvasTempPanel
+        .css({left: e.PageX, top: e.PageY, width: 'auto', height: 'auto'})
+        .show();
       this.$canvasTemp
-      .css({left: e.PageX, top: e.PageY})
-      .attr('width', 0)
-      .attr('height', 0)
-      .show();
+      .attr({ width: 0, height: 0 })
 
       this.canvasTempLeftOriginal = e.pageX;
       this.canvasTempTopOriginal = e.pageY;
+      this._canvasTempReisze = null;
+      this._canvasTempFactor = 2;
     },
     
-    _drawShapeMove: function (e, factor) {
+    _drawShapeMove: function (e, factor, painter) {
       var xo = this.canvasTempLeftOriginal,
           yo = this.canvasTempTopOriginal;
 
@@ -442,10 +494,10 @@
       e.w = e.width - this.options.lineWidth * factor;
       e.h = e.height - this.options.lineWidth * factor;
 
-      $(this.canvasTemp)
-      .css({left: e.left, top: e.top})
-      .attr('width', e.width)
-      .attr('height', e.height);
+      this.$canvasTempPanel
+        .css({left: e.left, top: e.top});
+      this.$canvasTemp
+        .attr({ width: e.width, height: e.height })
       
       // store these for later to use in our "up" call
       this.canvasTempLeftNew = e.left;
@@ -457,11 +509,27 @@
       this.ctxTemp.fillStyle = this.options.fillStyle;
       this.ctxTemp.strokeStyle = this.options.strokeStyle;
       this.ctxTemp.lineWidth = this.options.lineWidth * factor;
+      
+      if(painter) {
+      	this._canvasTempReisze = painter;
+      	this._canvasTempFactor = factor;
+      }
     },
     
-    _drawShapeUp: function () {
-      this.ctx.drawImage(this.canvasTemp, this.canvasTempLeftNew, this.canvasTempTopNew);
-      this.$canvasTemp.hide();
+    _drawShapeUp: function (e, painter) {
+//      this.ctx.drawImage(this.canvasTemp, this.canvasTempLeftNew, this.canvasTempTopNew);
+//      this.$canvasTemp.hide();
+    	if(painter) {
+    		this._canvasTempReisze = painter;
+    	}
+    },
+    
+    _mergeCanvasTemp: function() {
+      if(this.$canvasTempPanel.is(':visible')) {
+          this.ctx.drawImage(this.canvasTemp, this.canvasTempLeftNew, this.canvasTempTopNew);
+          this.$canvasTempPanel.hide();
+          this._addUndo();
+      }
     },
 
     /****************************************
@@ -648,7 +716,7 @@
 
       // the drag/snap events for menus are tricky
       // init handle for ALL menus, primary menu will drag a secondary menu with it, but that is un/binded in the toggle function
-      this.$menu.draggable({handle: $handle});
+      this.$menu.draggable({handle: $handle, containment:this.wPaint.options.menuContainment});
 
       // if it's a secondary menu we want to check for snapping
       // on drag we set docked to false, on snap we set it back to true
@@ -686,6 +754,7 @@
 
       function click() {
         _this.wPaint.menus.active = _this;
+        _this.wPaint._mergeCanvasTemp();
       }
 
       $icon

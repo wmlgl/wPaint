@@ -76,18 +76,20 @@
     _drawRoundedRectDown: function (e) { this._drawShapeDown(e); },
 
     _drawRoundedRectMove: function (e) {
-      this._drawShapeMove(e);
-
-      var radius = e.w > e.h ? e.h / e.w : e.w / e.h;
-
-      this.ctxTemp.roundedRect(e.x, e.y, e.w, e.h, Math.ceil(radius * (e.w * e.h * 0.001)));
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+      var painter = function (x, y, w, h) {
+	      var radius = w > h ? h / w : w / h;
+	
+	      this.ctxTemp.roundedRect(x, y, w, h, Math.ceil(radius * (w * h * 0.001)));
+	      this.ctxTemp.stroke();
+	      this.ctxTemp.fill();
+      }.bind(this);
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawRoundedRectUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -96,18 +98,20 @@
     _drawSquareDown: function (e) { this._drawShapeDown(e); },
 
     _drawSquareMove: function (e) {
-      this._drawShapeMove(e);
+      var painter = function(x, y, w, h) {
+          var l = w > h ? h : w;
 
-      var l = e.w > e.h ? e.h : e.w;
-
-      this.ctxTemp.rect(e.x, e.y, l, l);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+          this.ctxTemp.rect(x, y, l, l);
+          this.ctxTemp.stroke();
+          this.ctxTemp.fill();
+      }.bind(this);
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawSquareUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -116,18 +120,20 @@
     _drawRoundedSquareDown: function (e) { this._drawShapeDown(e); },
 
     _drawRoundedSquareMove: function (e) {
-      this._drawShapeMove(e);
+      var painter = function painter(x, y, w, h) {
+            var l = w > h ? h : w;
 
-      var l = e.w > e.h ? e.h : e.w;
-
-      this.ctxTemp.roundedRect(e.x, e.y, l, l, Math.ceil(l * l * 0.001));
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+            this.ctxTemp.roundedRect(x, y, l, l, Math.ceil(l * l * 0.001));
+            this.ctxTemp.stroke();
+            this.ctxTemp.fill();
+      }.bind(this);
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawRoundedSquareUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -136,16 +142,18 @@
     _drawDiamondDown: function (e) { this._drawShapeDown(e); },
 
     _drawDiamondMove: function (e) {
-      this._drawShapeMove(e);
-
-      this.ctxTemp.diamond(e.x, e.y, e.w, e.h);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+        var painter = function painter(x, y, w, h) {
+            this.ctxTemp.diamond(x, y, w, h);
+            this.ctxTemp.stroke();
+            this.ctxTemp.fill();
+        }.bind(this)
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawDiamondUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -154,18 +162,22 @@
     _drawCircleDown: function (e) { this._drawShapeDown(e); },
 
     _drawCircleMove: function (e) {
+        var painter = function painter(x, y, w, h) {
+            var l = w > h ? h : w;
+
+            this.ctxTemp.ellipse(x, y, l, l);
+            this.ctxTemp.stroke();
+            this.ctxTemp.fill();
+        }.bind(this)
+        
       this._drawShapeMove(e);
 
-      var l = e.w > e.h ? e.h : e.w;
-
-      this.ctxTemp.ellipse(e.x, e.y, l, l);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawCircleUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -174,16 +186,18 @@
     _drawPentagonDown: function (e) { this._drawShapeDown(e); },
 
     _drawPentagonMove: function (e) {
-      this._drawShapeMove(e);
-
-      this.ctxTemp.pentagon(e.x, e.y, e.w, e.h);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+      var painter = function painter(x, y, w, h) {
+          this.ctxTemp.pentagon(x, y, w, h);
+          this.ctxTemp.stroke();
+          this.ctxTemp.fill();
+      }.bind(this)
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawPentagonUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     },
 
     /****************************************
@@ -192,16 +206,18 @@
     _drawHexagonDown: function (e) { this._drawShapeDown(e); },
 
     _drawHexagonMove: function (e) {
-      this._drawShapeMove(e);
-
-      this.ctxTemp.hexagon(e.x, e.y, e.w, e.h);
-      this.ctxTemp.stroke();
-      this.ctxTemp.fill();
+      var painter = function painter(x, y, w, h) {
+          this.ctxTemp.hexagon(x, y, w, h);
+          this.ctxTemp.stroke();
+          this.ctxTemp.fill();
+      }.bind(this)
+      
+      this._drawShapeMove(e, null, painter);
+      painter(e.x, e.y, e.w, e.h);
     },
 
     _drawHexagonUp: function (e) {
       this._drawShapeUp(e);
-      this._addUndo();
     }
   });
 })(jQuery);

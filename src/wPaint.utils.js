@@ -4,6 +4,19 @@
       return this.slice(0, 1).toUpperCase() + this.slice(1);
     };
   }
+  if (!String.prototype.rgbValue) {
+    String.prototype.rgbValue = function () {
+      var hex = this;
+      if(/^#[a-zA-z0-9]{3,5}$/.test(this)) {
+        hex = this[0]+this[1]+this[1]+this[2]+this[2]+this[3]+this[3];
+      }
+      return {
+      	red: parseInt(hex.slice(1,3), 16),
+    	green: parseInt(hex.slice(3,5), 16),
+    	blue: parseInt(hex.slice(5,7), 16)
+      }
+    };
+  }
 })();
 
 (function ($) {

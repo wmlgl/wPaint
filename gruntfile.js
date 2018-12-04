@@ -45,7 +45,9 @@ module.exports = function(grunt) {
           './plugins/main/wPaint.menu.main.min.js': ['./plugins/main/src/wPaint.menu.main.js', './plugins/main/src/fillArea.min.js'],
           './plugins/text/wPaint.menu.text.min.js': ['./plugins/text/src/wPaint.menu.text.js'],
           './plugins/shapes/wPaint.menu.main.shapes.min.js': ['./plugins/shapes/src/wPaint.menu.main.shapes.js', './plugins/shapes/src/shapes.min.js'],
-          './plugins/file/wPaint.menu.main.file.min.js': ['./plugins/file/src/wPaint.menu.main.file.js']
+          './plugins/image/wPaint.menu.image.min.js': ['./plugins/image/src/wPaint.menu.image.js'],
+          './plugins/lang/wPaint.lang.min.js': ['./plugins/lang/src/wPaint.lang.js'],
+          './plugins/lang/zh-cn.min.js': ['./plugins/lang/src/zh-cn.js'],
        }
       }
     },
@@ -59,22 +61,25 @@ module.exports = function(grunt) {
         }
       }
     },
-    concat: {
-      basic_and_extras: {
-        files: {
-          'wPaint-min.js': ['./lib/wColorPicker.min.js', './wPaint.min.js'],
-          'wPaint-min.css': ['./lib/wColorPicker.min.css', './wPaint.min.css'],
-        },
-      }
-    },
+//    concat: {
+//      basic_and_extras: {
+//        files: {
+//          'wPaint-min.js': ['./lib/wColorPicker.min.js', './wPaint.min.js'],
+//          'wPaint-min.css': ['./lib/wColorPicker.min.css', './wPaint.min.css'],
+//        },
+//      }
+//    },
     watch: {
       files: [
         './src/wPaint.css',
         './src/wPaint.js',
-        './plugins/file/src/wPaint.menu.main.js',
-        './plugins/file/src/wPaint.menu.text.js',
-        './plugins/file/src/wPaint.menu.main.shapes.js',
-        './plugins/file/src/wPaint.menu.main.file.js'
+        './plugins/main/src/wPaint.menu.main.js',
+        './plugins/text/src/wPaint.menu.text.js',
+        './plugins/shapes/src/wPaint.menu.main.shapes.js',
+        './plugins/file/src/wPaint.menu.main.file.js',
+        './plugins/image/src/wPaint.menu.image.js',
+        './plugins/lang/src/wPaint.lang.js',
+        './plugins/lang/src/zh-cn.js'
       ],
       tasks: ['uglify']
     }

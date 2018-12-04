@@ -64,13 +64,14 @@
       this.$textCalc = $('<div></div>').hide();
 
       // make sure clicking on the text-tnput doesn't trigger another textInput
-      this.$textInput = $('<textarea class="wPaint-text-input" spellcheck="false"></textarea>')
-      .on('mousedown', this._stopPropagation) 
+      this.$textInputPanel = $('<div class="wPaint-move-rect"><div class="wPaint-move-handler ui-icon ui-icon-arrow-4"></div><textarea class="wPaint-text-input" spellcheck="false"></textarea></div>')
       .css({position: 'absolute'})
-      .hide();
+      .on('mousedown resize', this._stopPropagation)
+      .hide()
+      this.$textInput = $('textarea', this.$textInputPanel);
       
       $('body').append(this.$textCalc);
-      this.$el.append(this.$textInput);
+      this.$el.append(this.$textInputPanel);
 
       this.menus.all.text = this._createMenu('text');
     },
@@ -80,9 +81,14 @@
 
       function inputClick() {
         _this._drawTextIfNotEmpty();
-        _this.$textInput.hide();
-        _this.$canvasTemp.hide();
+        _this.$textInputPanel.hide();
       }
+      
+      this.$textInputPanel.draggable({
+    	  handle: '.wPaint-move-handler',
+    	  containment: "parent",
+    	  scroll: false
+      }).resizable();
 
       // in case we click on another element while typing - just auto set the text
       for (var i in this.menus.all) {
@@ -98,8 +104,8 @@
     /****************************************
      * setters
      ****************************************/
-    setFillStyle: function (fillStyle) {
-      this.$textInput.css('color', fillStyle);
+    setStrokeStyle: function (strokeStyle) {
+      this.$textInput.css('color', strokeStyle);
     },
 
     setFontSize: function (size) {
@@ -140,16 +146,18 @@
     _drawTextDown: function (e) {
       this._drawTextIfNotEmpty();
       this._drawShapeDown(e, 1);
+      this.$canvasTempPanel.hide();
 
-      this.$textInput
+      this.$textInputPanel
       .css({left: e.pageX - 1, top: e.pageY - 1, width: 0, height: 0})
-      .show().focus();
+      .show();
+      this.$textInput.focus();
     },
     
     _drawTextMove: function (e) {
       this._drawShapeMove(e, 1);
 
-      this.$textInput.css({left: e.left - 1, top: e.top - 1, width: e.width, height: e.height});
+      this.$textInputPanel.css({left: e.left - 1, top: e.top - 1, width: e.width, height: e.height});
     },
 
     _drawTextIfNotEmpty: function () {
@@ -164,7 +172,7 @@
           textInputWidth = this.$textInput.width() - 2,
           width = 0,
           lastj = 0,
-          offset = this.$textInput.position(),
+          offset = this.$textInputPanel.position(),
           left = offset.left + 1,
           top = offset.top + 1,
           //underlineOffset = 0,
@@ -196,7 +204,7 @@
       lines = this.$textInput.val(linesNew.join('\n')).val().split('\n');
 
       for (i = 0, ii = lines.length; i < ii; i++) {
-        this.ctx.fillStyle = this.options.fillStyle;
+        this.ctx.fillStyle = this.options.strokeStyle;
         this.ctx.textBaseline = 'top';
         this.ctx.font = fontString;
         this.ctx.fillText(lines[i], left, top);
